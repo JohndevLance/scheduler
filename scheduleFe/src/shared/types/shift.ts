@@ -72,10 +72,16 @@ export interface ConstraintViolation {
   message: string;
 }
 
+export interface ConstraintSuggestion {
+  userId: string;
+  userName: string;
+  reason: string;
+}
+
 export interface ConstraintViolationError {
   message: string;
   violations: ConstraintViolation[];
-  suggestions: string[];
+  suggestions: ConstraintSuggestion[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

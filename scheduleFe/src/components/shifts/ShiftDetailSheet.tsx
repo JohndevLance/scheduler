@@ -25,7 +25,7 @@ import { useUsers } from '@/hooks/useUsers';
 import {
   Clock, MapPin, Users, Wrench, FileText, UserPlus, X, Send, EyeOff, Pencil, Trash2, AlertTriangle,
 } from 'lucide-react';
-import type { Shift, ConstraintViolationError } from '@/shared/types/shift';
+import type { Shift, ConstraintViolationError, ConstraintSuggestion } from '@/shared/types/shift';
 import ShiftFormDialog from './ShiftFormDialog';
 
 interface ShiftDetailSheetProps {
@@ -103,7 +103,7 @@ const ShiftDetailSheet = ({ shift, onClose, canManage }: ShiftDetailSheetProps) 
   return (
     <>
       <Sheet open={!!shift} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent className="w-[440px] sm:max-w-[440px] overflow-y-auto">
+        <SheetContent className="w-110 sm:max-w-110 overflow-y-auto">
           <SheetHeader className="pb-3">
             <div className="flex items-start justify-between gap-2 pr-6">
               <div>
@@ -248,8 +248,11 @@ const ShiftDetailSheet = ({ shift, onClose, canManage }: ShiftDetailSheetProps) 
 
       {/* Assign dialog */}
       <Dialog open={assignOpen} onOpenChange={(v) => !v && setAssignOpen(false)}>
-        <DialogContent className="sm:max-w-[380px]">
-          <DialogHeader><DialogTitle>Assign staff</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-95">
+          <DialogHeader>
+            <DialogTitle>Assign staff</DialogTitle>
+            <DialogDescription>Select a staff member to assign to this shift.</DialogDescription>
+          </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit((values) => handleAssign(values))} className="space-y-4">
               <FormField
@@ -338,7 +341,7 @@ const ShiftDetailSheet = ({ shift, onClose, canManage }: ShiftDetailSheetProps) 
 
       {/* Constraint violation dialog */}
       <Dialog open={!!constraintError} onOpenChange={(v) => { if (!v) { setConstraintError(null); setPendingAssign(null); } }}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-120">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-amber-600">
               <AlertTriangle className="h-4 w-4" />
@@ -363,9 +366,10 @@ const ShiftDetailSheet = ({ shift, onClose, canManage }: ShiftDetailSheetProps) 
                 <div className="mt-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Suggestions</p>
                   <div className="space-y-1.5">
-                    {constraintError.suggestions.map((s, i) => (
+                    {constraintError.suggestions.map((s: ConstraintSuggestion, i) => (
                       <div key={i} className="rounded-md bg-blue-50 border border-blue-100 px-3 py-2 text-sm text-blue-700">
-                        {s}
+                        <span className="font-medium">{s.userName}</span>
+                        {s.reason && <span className="text-blue-500"> — {s.reason}</span>}
                       </div>
                     ))}
                   </div>

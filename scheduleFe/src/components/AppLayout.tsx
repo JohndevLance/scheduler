@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useUnreadCount } from '@/hooks/useNotifications';
+import { useSocket } from '@/hooks/useSocket';
 import {
   LayoutDashboard,
   Users,
@@ -75,6 +76,7 @@ const AppLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { data: unreadCount = 0 } = useUnreadCount();
+  useSocket(); // Establish WebSocket connection for real-time events
 
   const initials = user
     ? `${user.firstName?.charAt(0) ?? ''}${user.lastName?.charAt(0) ?? ''}`.toUpperCase() || '??'

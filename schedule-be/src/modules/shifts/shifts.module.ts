@@ -10,6 +10,7 @@ import { ShiftsService } from './shifts.service';
 import { ShiftsController } from './shifts.controller';
 import { UsersModule } from '../users/users.module';
 import { LocationsModule } from '../locations/locations.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { LocationsModule } from '../locations/locations.module';
     ]),
     UsersModule,
     LocationsModule,
+    NotificationsModule,
   ],
   providers: [ShiftsRepository, ConstraintService, ShiftsService],
   controllers: [ShiftsController],

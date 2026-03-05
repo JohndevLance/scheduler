@@ -67,6 +67,7 @@ export class SchedulingGateway
     @MessageBody() locationId: string,
   ) {
     await client.join(`location:${locationId}`);
+    this.logger.log(`user:${client.data.userId} joined location:${locationId}`);
     return { ok: true, room: `location:${locationId}` };
   }
 
@@ -76,6 +77,7 @@ export class SchedulingGateway
     @MessageBody() locationId: string,
   ) {
     await client.leave(`location:${locationId}`);
+    this.logger.log(`user:${client.data.userId} left location:${locationId}`);
     return { ok: true };
   }
 

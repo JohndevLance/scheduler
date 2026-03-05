@@ -55,10 +55,9 @@ export interface ResolveSwapDto {
 }
 
 export interface EligibleCover {
-  id: string;
+  userId: string;
   firstName: string;
   lastName: string;
-  email: string;
   canCover: boolean;
   violations: string[];
 }

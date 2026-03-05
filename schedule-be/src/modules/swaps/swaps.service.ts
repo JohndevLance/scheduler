@@ -26,6 +26,11 @@ export interface EligibleCover {
   violations: string[];
 }
 
+export interface SwapResult {
+  swap: SwapRequest;
+  violations: string[];
+}
+
 @Injectable()
 export class SwapsService {
   constructor(
@@ -37,6 +42,9 @@ export class SwapsService {
 
     @InjectRepository(Shift)
     private readonly shiftRepo: Repository<Shift>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
 
     private readonly constraintService: ConstraintService,
     private readonly locationsService: LocationsService,
@@ -99,7 +107,7 @@ export class SwapsService {
   async createSwapRequest(
     dto: CreateSwapDto,
     requester: User,
-  ): Promise<SwapRequest> {
+  ): Promise<SwapResult> {
     // Verify requester is assigned to this shift
     const assignment = await this.assignmentRepo.findOne({
       where: { shiftId: dto.shiftId, userId: requester.id },
@@ -122,6 +130,34 @@ export class SwapsService {
       );
     }
 
+    // Constraint check on the targeted cover person (SWAP with coverId)
+    const violations: string[] = [];
+    if (dto.type === SwapType.SWAP && dto.coverId) {
+      const shift = await this.shiftRepo.findOne({
+        where: { id: dto.shiftId },
+        relations: ['location'],
+      });
+      const coverUser = await this.userRepo.findOne({
+        where: { id: dto.coverId },
+        relations: ['skills'],
+      });
+      if (shift && coverUser) {
+        const result = await this.constraintService.checkAssignmentConstraints(
+          shift,
+          coverUser,
+          undefined,
+          true,
+        );
+        violations.push(...result.violations.map((v) => v.message));
+        if (!result.valid) {
+          throw new BadRequestException({
+            message: 'Cover person violates scheduling constraints',
+            violations: result.violations.map((v) => v.message),
+          });
+        }
+      }
+    }
+
     // DROP type goes straight to PENDING_APPROVAL (no specific cover needed)
     const initialStatus =
       dto.type === SwapType.DROP
@@ -141,12 +177,12 @@ export class SwapsService {
       expiresAt,
     });
 
-    return this.swapRepo.save(swap);
+    return { swap: await this.swapRepo.save(swap), violations };
   }
 
   // ── Cover accepts (SWAP type only) ──────────────────────────────────────
 
-  async acceptSwap(swapId: string, cover: User): Promise<SwapRequest> {
+  async acceptSwap(swapId: string, cover: User): Promise<SwapResult> {
     const swap = await this.findByIdOrThrow(swapId);
 
     if (swap.type !== SwapType.SWAP) {
@@ -163,9 +199,35 @@ export class SwapsService {
       );
     }
 
+    // Constraint check on the accepting cover person
+    const shift = await this.shiftRepo.findOne({
+      where: { id: swap.shiftId },
+      relations: ['location'],
+    });
+    const coverUser = await this.userRepo.findOne({
+      where: { id: cover.id },
+      relations: ['skills'],
+    });
+    const violations: string[] = [];
+    if (shift && coverUser) {
+      const result = await this.constraintService.checkAssignmentConstraints(
+        shift,
+        coverUser,
+        undefined,
+        true,
+      );
+      if (!result.valid) {
+        throw new BadRequestException({
+          message: 'You have scheduling constraint violations for this shift',
+          violations: result.violations.map((v) => v.message),
+        });
+      }
+      violations.push(...result.violations.map((v) => v.message));
+    }
+
     swap.coverId = cover.id;
     swap.status = SwapStatus.PENDING_APPROVAL;
-    return this.swapRepo.save(swap);
+    return { swap: await this.swapRepo.save(swap), violations };
   }
 
   // ── Manager approves ─────────────────────────────────────────────────────

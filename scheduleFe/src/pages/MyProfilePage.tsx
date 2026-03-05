@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AvailabilityPanel from '@/components/users/AvailabilityPanel';
 import type { UpdateUserDto } from '@/shared/types/user';
 
 interface ProfileFormValues {
@@ -105,13 +107,21 @@ const MyProfilePage = () => {
         </CardContent>
       </Card>
 
-      {/* Edit form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit profile</CardTitle>
-          <CardDescription>Update your personal information and preferences.</CardDescription>
-        </CardHeader>
-        <CardContent>
+      {/* Tabs: Profile / Availability */}
+      <Tabs defaultValue="profile">
+        <TabsList className="mb-4">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="availability">Availability</TabsTrigger>
+        </TabsList>
+
+        {/* ── Profile tab ── */}
+        <TabsContent value="profile">
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit profile</CardTitle>
+              <CardDescription>Update your personal information and preferences.</CardDescription>
+            </CardHeader>
+            <CardContent>
           {isLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -229,8 +239,29 @@ const MyProfilePage = () => {
               </form>
             </Form>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        </TabsContent>
+
+        {/* ── Availability tab ── */}
+        <TabsContent value="availability">
+          <Card>
+            <CardHeader>
+              <CardTitle>My availability</CardTitle>
+              <CardDescription>Set your recurring weekly schedule and date-specific overrides.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {user ? (
+                <AvailabilityPanel userId={user.id} />
+              ) : (
+                <div className="space-y-2">
+                  {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-11 w-full" />)}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

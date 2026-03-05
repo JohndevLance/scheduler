@@ -28,6 +28,7 @@ const invalidateShifts = (queryClient: ReturnType<typeof useQueryClient>) => {
   queryClient.invalidateQueries({ queryKey: ['shifts'] });
   queryClient.invalidateQueries({ queryKey: ['schedule'] });
   queryClient.invalidateQueries({ queryKey: ['my-schedule'] });
+  queryClient.invalidateQueries({ queryKey: ['shift'] }); // invalidates ['shift', id] detail queries
 };
 
 export const useShifts = (params?: ShiftsQueryParams) => {

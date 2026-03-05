@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Notification } from './entities/notification.entity';
 import { NotificationType } from '../../common/enums/notification-type.enum';
 import { QueryNotificationDto } from './dto/request/query-notification.dto';
+import { SchedulingGateway } from '../gateway/scheduling.gateway';
 
 export interface CreateNotificationPayload {
   title: string;
@@ -17,6 +18,7 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly notifRepo: Repository<Notification>,
+    private readonly gateway: SchedulingGateway,
   ) {}
 
   // ── Internal factory — never throws ──────────────────────────────────────
@@ -34,7 +36,18 @@ export class NotificationsService {
       referenceType: payload.referenceType ?? null,
       isRead: false,
     });
-    return this.notifRepo.save(notif);
+    const saved = await this.notifRepo.save(notif);
+    this.gateway.emitNotification(userId, {
+      id: saved.id,
+      title: saved.title,
+      body: saved.body,
+      type: saved.type,
+      referenceId: saved.referenceId,
+      referenceType: saved.referenceType,
+      isRead: false,
+      createdAt: saved.createdAt,
+    });
+    return saved;
   }
 
   // ── Bulk notify multiple users ────────────────────────────────────────────
@@ -47,7 +60,19 @@ export class NotificationsService {
     const records = userIds.map((userId) =>
       this.notifRepo.create({ userId, type, ...payload, isRead: false }),
     );
-    await this.notifRepo.save(records);
+    const saved = await this.notifRepo.save(records);
+    for (const notif of saved) {
+      this.gateway.emitNotification(notif.userId, {
+        id: notif.id,
+        title: notif.title,
+        body: notif.body,
+        type: notif.type,
+        referenceId: notif.referenceId,
+        referenceType: notif.referenceType,
+        isRead: false,
+        createdAt: notif.createdAt,
+      });
+    }
   }
 
   // ── User-facing queries ───────────────────────────────────────────────────

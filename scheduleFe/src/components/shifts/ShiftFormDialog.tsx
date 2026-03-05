@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -55,6 +55,10 @@ const ShiftFormDialog = ({
   const { data: locations = [] } = useLocations();
   const { data: skills = [] } = useSkills();
 
+  // Track whether the dialog was just opened so we only reset the form
+  // on open — not on every re-render triggered by a shift prop reference change
+  // (e.g. React Query background refetch while user is editing).
+  const wasOpenRef = useRef(false);
   // Derive the timezone of the currently selected (or shift's) location.
   // For edit mode, prefer the timezone already embedded in the shift's location
   // relation; fall back to looking it up from the locations list.
@@ -66,6 +70,14 @@ const ShiftFormDialog = ({
     'UTC';
 
   useEffect(() => {
+    if (!open) {
+      wasOpenRef.current = false;
+      return;
+    }
+    // Only reset when dialog transitions from closed → open
+    if (wasOpenRef.current) return;
+    wasOpenRef.current = true;
+
     if (mode === 'edit' && shift) {
       // Use the timezone embedded in the shift's location for display in the form
       const shiftTz =
@@ -91,7 +103,7 @@ const ShiftFormDialog = ({
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shift, open, mode, defaultLocationId, defaultDate]);
+  }, [open]);
 
   const handleSubmit = (values: ShiftFormValues) => {
     if (mode === 'create') {

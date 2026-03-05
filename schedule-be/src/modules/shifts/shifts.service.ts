@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,6 +17,8 @@ import { QueryShiftDto } from './dto/request/query-shift.dto';
 import { AssignStaffDto } from './dto/request/assign-shift.dto';
 import { UsersService } from '../users/users.service';
 import { LocationsService } from '../locations/locations.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../../common/enums/notification-type.enum';
 import { ShiftStatus } from '../../common/enums/shift-status.enum';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../../common/enums/role.enum';
@@ -24,11 +27,14 @@ const EDIT_CUTOFF_HOURS = 48;
 
 @Injectable()
 export class ShiftsService {
+  private readonly logger = new Logger(ShiftsService.name);
+
   constructor(
     private readonly shiftsRepository: ShiftsRepository,
     private readonly constraintService: ConstraintService,
     private readonly usersService: UsersService,
     private readonly locationsService: LocationsService,
+    private readonly notificationsService: NotificationsService,
     @InjectRepository(ShiftAssignment)
     private readonly assignmentRepo: Repository<ShiftAssignment>,
   ) {}
@@ -252,6 +258,44 @@ export class ShiftsService {
       },
     );
 
+    // Notify the assigned user
+    const tz = shift.location?.timezone ?? 'UTC';
+    const locale = 'en-US';
+    const fmtOpts: Intl.DateTimeFormatOptions = {
+      timeZone: tz,
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    };
+    const timeFmt = new Intl.DateTimeFormat(locale, {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const dateStr = new Intl.DateTimeFormat(locale, fmtOpts).format(shift.startTime);
+    const startStr = timeFmt.format(shift.startTime);
+    const endStr = timeFmt.format(shift.endTime);
+    const locationName = shift.location?.name ?? 'your location';
+    try {
+      await this.notificationsService.create(
+        dto.userId,
+        NotificationType.SHIFT_ASSIGNED,
+        {
+          title: 'Shift Assigned',
+          body: `You have been assigned a shift at ${locationName} on ${dateStr}, ${startStr} – ${endStr}.`,
+          referenceId: shiftId,
+          referenceType: 'shift',
+        },
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to send SHIFT_ASSIGNED notification to user ${dto.userId}`,
+        err,
+      );
+    }
+
     return {
       assignment,
       warnings: [
@@ -277,6 +321,43 @@ export class ShiftsService {
     if (!assignment) throw new NotFoundException('Assignment not found');
 
     await this.assignmentRepo.remove(assignment);
+
+    // Notify the unassigned user
+    const tz = shift.location?.timezone ?? 'UTC';
+    const locale = 'en-US';
+    const timeFmt = new Intl.DateTimeFormat(locale, {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const dateStr = new Intl.DateTimeFormat(locale, {
+      timeZone: tz,
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(shift.startTime);
+    const startStr = timeFmt.format(shift.startTime);
+    const endStr = timeFmt.format(shift.endTime);
+    const locationName = shift.location?.name ?? 'your location';
+    try {
+      await this.notificationsService.create(
+        userId,
+        NotificationType.SHIFT_UNASSIGNED,
+        {
+          title: 'Shift Unassigned',
+          body: `You have been removed from your shift at ${locationName} on ${dateStr}, ${startStr} – ${endStr}.`,
+          referenceId: shiftId,
+          referenceType: 'shift',
+        },
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to send SHIFT_UNASSIGNED notification to user ${userId}`,
+        err,
+      );
+    }
   }
 
   async getAssignmentsForUser(

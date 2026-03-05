@@ -1,5 +1,6 @@
 export enum NotificationType {
   SHIFT_ASSIGNED = 'shift_assigned',
+  SHIFT_UNASSIGNED = 'shift_unassigned',
   SHIFT_CHANGED = 'shift_changed',
   SHIFT_CANCELLED = 'shift_cancelled',
   SCHEDULE_PUBLISHED = 'schedule_published',

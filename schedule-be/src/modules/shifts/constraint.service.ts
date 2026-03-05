@@ -145,9 +145,20 @@ export class ConstraintService {
       .getCount();
 
     if (overlapping > 0) {
+      const tz = shift.location?.timezone ?? 'UTC';
+      const fmtTime = (d: Date) =>
+        new Intl.DateTimeFormat('en-US', {
+          timeZone: tz,
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        }).format(d);
       violations.push({
         rule: 'DOUBLE_BOOKING',
-        message: `${user.fullName} is already assigned to an overlapping shift during ${shift.startTime.toISOString()} – ${shift.endTime.toISOString()}.`,
+        message: `${user.fullName} is already assigned to an overlapping shift: ${fmtTime(shift.startTime)} – ${fmtTime(shift.endTime)}.`,
         affectedUserId: user.id,
         affectedShiftId: shift.id,
       });
@@ -285,7 +296,7 @@ export class ConstraintService {
     if (!covers) {
       violations.push({
         rule: 'AVAILABILITY_RECURRING',
-        message: `${user.fullName} is only available ${availability.startTime}–${availability.endTime} on this day, but the shift runs ${shift.startTime.toLocaleString('en-US', { timeZone: locationTimezone })} – ${shift.endTime.toLocaleString('en-US', { timeZone: locationTimezone })} (${locationTimezone}).`,
+        message: `${user.fullName} is only available ${availability.startTime}–${availability.endTime} but the shift runs ${new Intl.DateTimeFormat('en-US', { timeZone: locationTimezone, hour: 'numeric', minute: '2-digit', hour12: true }).format(shift.startTime)} – ${new Intl.DateTimeFormat('en-US', { timeZone: locationTimezone, hour: 'numeric', minute: '2-digit', hour12: true }).format(shift.endTime)}.`,
         affectedUserId: user.id,
         affectedShiftId: shift.id,
       });

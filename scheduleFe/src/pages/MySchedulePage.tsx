@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { addDays, startOfWeek, format } from 'date-fns';
-import { ChevronLeft, ChevronRight, ArrowLeftRight, Trash2, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowLeftRight, Trash2, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -302,30 +302,64 @@ const MySchedulePage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Cover person <span className="font-normal text-gray-400">(optional)</span></FormLabel>
-                      <FormControl>
-                        <select
-                          {...field}
-                          disabled={coversLoading}
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-                        >
-                          <option value="">{coversLoading ? 'Loading…' : 'Anyone available'}</option>
+                      {coversLoading ? (
+                        <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-gray-400">
+                          <span>Loading eligible cover staff…</span>
+                        </div>
+                      ) : eligibleCovers.length === 0 ? (
+                        <div className="rounded-md border px-3 py-2 text-sm text-gray-400">
+                          No colleagues found for this shift.
+                        </div>
+                      ) : (
+                        <div className="max-h-52 overflow-y-auto rounded-md border divide-y">
+                          {/* Anyone available option */}
+                          <button
+                            type="button"
+                            onClick={() => field.onChange('')}
+                            className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-gray-50 ${
+                              field.value === '' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600'
+                            }`}
+                          >
+                            Anyone available
+                          </button>
                           {eligibleCovers.map((u) => (
-                            <option key={u.id} value={u.id}>
-                              {u.firstName} {u.lastName}{!u.canCover ? ' ⚠' : ''}
-                            </option>
+                            <button
+                              key={u.userId}
+                              type="button"
+                              onClick={() => field.onChange(u.userId)}
+                              className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-gray-50 ${
+                                field.value === u.userId
+                                  ? 'bg-blue-50'
+                                  : ''
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {u.canCover ? (
+                                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500" />
+                                ) : (
+                                  <XCircle className="h-3.5 w-3.5 shrink-0 text-red-400" />
+                                )}
+                                <span className={u.canCover ? 'text-gray-800 font-medium' : 'text-gray-500'}>
+                                  {u.firstName} {u.lastName}
+                                </span>
+                                {!u.canCover && (
+                                  <span className="ml-auto text-[10px] text-red-400 font-medium">has conflicts</span>
+                                )}
+                              </div>
+                              {!u.canCover && u.violations.length > 0 && (
+                                <ul className="mt-1 ml-5 space-y-0.5">
+                                  {u.violations.map((v, i) => (
+                                    <li key={i} className="flex items-start gap-1 text-[11px] text-yellow-700">
+                                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-yellow-500" />
+                                      <span>{v}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </button>
                           ))}
-                        </select>
-                      </FormControl>
-                      {/* Show violations for the currently selected cover */}
-                      {(() => {
-                        const selected = eligibleCovers.find((u) => u.id === field.value);
-                        return selected && !selected.canCover && selected.violations.length > 0 ? (
-                          <div className="flex items-start gap-1.5 rounded-md bg-yellow-50 border border-yellow-200 px-2.5 py-2 text-xs text-yellow-800">
-                            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-500" />
-                            <span>{selected.violations.join(', ')}</span>
-                          </div>
-                        ) : null;
-                      })()}
+                        </div>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

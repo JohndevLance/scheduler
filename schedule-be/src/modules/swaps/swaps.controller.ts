@@ -89,27 +89,34 @@ export class SwapsController {
   @Post()
   @ApiOperation({
     summary: 'Create a swap or drop request for a shift you are assigned to',
+    description:
+      'For SWAP with a coverId: runs constraint checks on the cover person. ' +
+      'Returns 400 with violations array if constraints are violated.',
   })
   @ApiResponse({ status: 201, description: 'Swap request created' })
+  @ApiResponse({ status: 400, description: 'Constraint violation on cover person' })
   async create(@Body() dto: CreateSwapDto, @CurrentUser() user: User) {
-    const swap = await this.swapsService.createSwapRequest(dto, user);
+    const result = await this.swapsService.createSwapRequest(dto, user);
     return ApiResponseDto.success(
-      SwapResponseDto.fromEntity(swap),
-      'Swap request created',
+      { swap: SwapResponseDto.fromEntity(result.swap), violations: result.violations },
+      result.violations.length ? 'Swap request created with warnings' : 'Swap request created',
       HttpStatus.CREATED,
     );
   }
 
   @Post(':id/accept')
-  @ApiOperation({ summary: 'Accept a swap request as the cover person' })
+  @ApiOperation({
+    summary: 'Accept a swap request as the cover person',
+    description: 'Runs constraint checks on the accepting user. Returns 400 if constraints are violated.',
+  })
   @ApiParam({ name: 'id', type: String, format: 'uuid' })
   async accept(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: User,
   ) {
-    const swap = await this.swapsService.acceptSwap(id, user);
+    const result = await this.swapsService.acceptSwap(id, user);
     return ApiResponseDto.success(
-      SwapResponseDto.fromEntity(swap),
+      { swap: SwapResponseDto.fromEntity(result.swap), violations: result.violations },
       'Swap accepted — pending manager approval',
     );
   }
