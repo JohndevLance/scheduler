@@ -3,4 +3,8 @@
 .env.local
 .DS_Store
 
+# AI/internal docs
+docs/ai/
+schedule-be/docs/ai/
+
 .github
