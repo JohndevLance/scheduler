@@ -16,5 +16,13 @@ AppDataSource.initialize()
   });
 "
 
+# Only seed when explicitly requested (first deploy / reset).
+# Set RUN_SEED=true in the environment to trigger this.
+if [ "$RUN_SEED" = "true" ]; then
+  echo "🌱  Running database seeders..."
+  node dist/database/seeds/seed.js
+  echo "✅  Seeding completed"
+fi
+
 echo "🚀  Starting application..."
 exec node dist/main

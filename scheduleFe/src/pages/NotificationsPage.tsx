@@ -68,7 +68,7 @@ const NotificationsPage = () => {
                   <p className={cn('text-sm', n.isRead ? 'text-gray-700' : 'text-gray-900 font-medium')}>
                     {n.title}
                   </p>
-                  <p className="mt-0.5 text-xs text-gray-500 leading-snug">{n.message}</p>
+                  <p className="mt-0.5 text-xs text-gray-500 leading-snug">{n.body}</p>
                   <p className="mt-1 text-[11px] text-gray-400">
                     {format(new Date(n.createdAt), 'MMM d, yyyy · h:mm a')}
                   </p>

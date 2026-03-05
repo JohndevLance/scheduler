@@ -17,7 +17,7 @@ export interface Notification {
   userId: string;
   type: NotificationType;
   title: string;
-  message: string;
+  body: string;
   isRead: boolean;
   data?: Record<string, unknown> | null;
   createdAt: string;
