@@ -1,0 +1,66 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: scheduler_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB:       ${DB_NAME:-scheduler}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-scheduler}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - scheduler_net
+
+  # ── NestJS Backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./schedule-be
+      dockerfile: Dockerfile
+    container_name: scheduler_backend
+    restart: unless-stopped
+    env_file: ./schedule-be/.env
+    environment:
+      NODE_ENV:     production
+      DB_HOST:      postgres         # override the .env value to reach the container
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - scheduler_net
+
+  # ── React / Vite Frontend (nginx) ───────────────────────────────────────────
+  frontend:
+    build:
+      context: ./scheduleFe
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1   # nginx will proxy /api → backend
+    container_name: scheduler_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - scheduler_net
+
+# ── Volumes & Networks ──────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+
+networks:
+  scheduler_net:
+    driver: bridge

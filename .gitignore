@@ -1,0 +1,4 @@
+# Root-level secrets — never commit real env files
+.env
+.env.local
+.DS_Store

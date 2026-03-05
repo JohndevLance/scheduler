@@ -1,0 +1,17 @@
+export enum NotificationType {
+  SHIFT_ASSIGNED = 'shift_assigned',
+  SHIFT_CHANGED = 'shift_changed',
+  SHIFT_CANCELLED = 'shift_cancelled',
+  SCHEDULE_PUBLISHED = 'schedule_published',
+  SWAP_REQUESTED = 'swap_requested',
+  SWAP_ACCEPTED = 'swap_accepted',
+  SWAP_REJECTED = 'swap_rejected',
+  SWAP_APPROVED = 'swap_approved',
+  SWAP_CANCELLED = 'swap_cancelled',
+  SWAP_EXPIRED = 'swap_expired',
+  DROP_AVAILABLE = 'drop_available',
+  DROP_CLAIMED = 'drop_claimed',
+  OVERTIME_WARNING = 'overtime_warning',
+  AVAILABILITY_CHANGED = 'availability_changed',
+  MANAGER_OVERRIDE_REQUIRED = 'manager_override_required',
+}
