@@ -11,8 +11,7 @@ services:
       POSTGRES_DB:       ${DB_NAME:-scheduler}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # No host port binding — only reachable inside scheduler_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-scheduler}"]
       interval: 10s
@@ -32,12 +31,11 @@ services:
     environment:
       NODE_ENV:     production
       DB_HOST:      postgres         # override the .env value to reach the container
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "3000:3000"
+    # No host port binding — nginx proxies /api to backend internally
     networks:
       - scheduler_net
 
@@ -51,7 +49,7 @@ services:
     container_name: scheduler_frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - backend
     networks:
