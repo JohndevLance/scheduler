@@ -7,7 +7,11 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN npm run build && \
+    npx tsc --module commonjs --moduleResolution node --target ES2023 \
+      --experimentalDecorators --emitDecoratorMetadata --esModuleInterop \
+      --skipLibCheck --outDir dist \
+      src/database/seeds/seed.ts
 
 # ── Stage 2: Production ─────────────────────────────────────────────────────
 FROM node:20-alpine AS production
