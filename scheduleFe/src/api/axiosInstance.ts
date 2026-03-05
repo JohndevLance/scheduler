@@ -17,13 +17,18 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 — clear Zustand store and redirect to login
+// Handle 401 — clear Zustand store and redirect to login.
+// Never redirect for auth endpoints themselves (login/register) — their onError handles it.
 apiClient.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      useAuthStore.getState().clearAuth();
-      window.location.href = '/login';
+      const url = error.config?.url ?? '';
+      const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+      if (!isAuthEndpoint) {
+        useAuthStore.getState().clearAuth();
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   },
