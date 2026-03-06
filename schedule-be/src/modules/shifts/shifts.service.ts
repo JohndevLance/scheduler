@@ -121,7 +121,55 @@ export class ShiftsService {
 
     shift.isPremium = this.isPremiumShift(shift.startTime);
 
-    return this.shiftsRepository.save(shift);
+    const saved = await this.shiftsRepository.save(shift);
+
+    // Notify all current assignees of the change (published shifts only)
+    if (saved.status === ShiftStatus.PUBLISHED) {
+      try {
+        const assignments = await this.assignmentRepo.find({
+          where: { shiftId: saved.id },
+          select: ['userId'],
+        });
+        const assigneeIds = assignments.map((a) => a.userId);
+        if (assigneeIds.length) {
+          const tz = saved.location?.timezone ?? 'UTC';
+          const locale = 'en-US';
+          const dateStr = new Intl.DateTimeFormat(locale, {
+            timeZone: tz,
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }).format(saved.startTime);
+          const timeFmt = new Intl.DateTimeFormat(locale, {
+            timeZone: tz,
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+          });
+          const startStr = timeFmt.format(saved.startTime);
+          const endStr = timeFmt.format(saved.endTime);
+          const locationName = saved.location?.name ?? 'your location';
+          await this.notificationsService.createForMany(
+            assigneeIds,
+            NotificationType.SHIFT_CHANGED,
+            {
+              title: 'Shift Updated',
+              body: `Your shift at ${locationName} on ${dateStr}, ${startStr} – ${endStr} has been updated.`,
+              referenceId: saved.id,
+              referenceType: 'shift',
+            },
+          );
+        }
+      } catch (err) {
+        this.logger.error(
+          `Failed to send SHIFT_CHANGED notifications for shift ${saved.id}`,
+          err,
+        );
+      }
+    }
+
+    return saved;
   }
 
   async remove(id: string, requestingUser: User): Promise<void> {
